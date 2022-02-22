@@ -26,7 +26,7 @@ def get_parser(ap=None):
     ap.add_argument("--width", type=int, default=3860)
     ap.add_argument("--fps", type=int, default=30)  
     ap.add_argument("--device", type=str, default=None, required=True)  
-    ap.add_argument("--output", type=str, default="output.mp4")  
+    ap.add_argument("--output", type=str, default=None)  
     ap.add_argument("--camera", type=str, default=None)
     ap.add_argument("--color", default=False, action="store_true")  
     return ap
@@ -66,8 +66,10 @@ def init_camera(camera, width, height, fps):
         camera.open(buffersize=100)
 
     else:
+        frame  = np.random.randint(0, 256, (height, width, 1), dtype=np.uint8)
+
         def camera():
-            return np.random.randint(0, 256, (height, width, 1), dtype=np.uint8)
+            return frame
 
     return camera
 

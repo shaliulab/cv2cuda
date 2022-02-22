@@ -4,10 +4,10 @@
 python ffmpeg_gpu_benchmark.py  --device gpu --width 2000 --height 2000 --fps 45  --color --output output.mp4
 ```
 
-* Expected FPS: 45
+# Issues:
 
-* Actual FPS: 37
-
+* FPS using GPU doesn't go further than 37, but it should given that the CPU can already do 32
+* Using the GPU still causes heavy CPU usage
 
 # Versions
 
