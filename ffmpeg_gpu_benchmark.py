@@ -136,7 +136,7 @@ def main(ap=None, args=None):
         
         
     command = make_command(args.device, width=args.width, height=args.height, fps=args.fps, output=args.output)
-    default_data = np.random.randint(0, 256, (args.height, args.width, 1), dtype=np.uint8).tobytes()
+    default_data = np.random.randint(0, 256, (args.height, args.width, 1), dtype=np.uint8)
 
 
     if VERSION == 1:
