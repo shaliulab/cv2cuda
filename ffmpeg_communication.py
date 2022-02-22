@@ -36,7 +36,7 @@ def make_command(device, width, height, fps, output=None):
             
     elif device == "gpu":
         command = f"ffmpeg -y -f rawvideo -pix_fmt {PIX_FMT}"\
-            " -vsync 0 -hwaccel cuda"\
+            " -vsync 0 -extra_hw_frames 2"\
             f" -s {width}x{height} -r {fps}"
         
         if output is None:

@@ -12,7 +12,13 @@ from tqdm import tqdm
 import numpy as np
 import cv2
 
-from baslerpi.io.cameras import BaslerCamera
+try:
+    from baslerpi.io.cameras import BaslerCamera
+    BaslerCameraImport = True
+except ImportError:
+    BaslerCameraImport = False
+
+
 
 from ffmpeg_communication import init_ffmpeg, write_to_ffmpeg, make_command
 
@@ -28,7 +34,9 @@ def get_parser(ap=None):
     ap.add_argument("--device", type=str, default=None, required=True)  
     ap.add_argument("--output", type=str, default=None)  
     ap.add_argument("--camera", type=str, default=None)
-    ap.add_argument("--color", default=False, action="store_true")  
+    ap.add_argument("--color", default=False, action="store_true")
+    ap.add_argument("--preview", default=False, action="store_true")
+    ap.add_argument("--debug-bytes-conversion", dest="debug_bytes_conversion", default=False, action="store_true")
     return ap
 
 
@@ -36,7 +44,7 @@ def get_parser(ap=None):
 
 def read_frame(camera, color=False, height=2178, width=3860):
     
-    if isinstance(camera, BaslerCamera):
+    if BaslerCameraImport and isinstance(camera, BaslerCamera):
         frame = camera._next_image()[0]
     else:
         frame = camera()
@@ -73,9 +81,10 @@ def init_camera(camera, width, height, fps):
 
     return camera
 
+
 def stop_camera(camera):
 
-    if isinstance(camera, BaslerCamera):
+    if BaslerCameraImport and isinstance(camera, BaslerCamera):
         return camera.close()
     else:
         return
@@ -85,29 +94,35 @@ class QuitException(Exception):
     pass
 
 
-def run_v1(camera, proc, args, pb):
+def run_v1(camera, proc, args, pb, data=None):
     try:
-        frame = read_frame(camera=camera, color=args.color, height=args.height, width=args.width)
-        data = frame.tobytes()
+        if data is None:
+            frame = read_frame(camera=camera, color=args.color, height=args.height, width=args.width)
+            data = frame
+
         proc.stdin.write(data)
         if pb: pb.update(1)
-        cv2.imshow("frame", cv2.resize(frame, (300, 300)))  
-        if cv2.waitKey(1) == ord("q"):
-            raise QuitException
+        if  args.preview:
+            cv2.imshow("frame", cv2.resize(frame, (300, 300)))  
+            if cv2.waitKey(1) == ord("q"):
+                raise QuitException
         return 0
     except (KeyboardInterrupt, QuitException):
         stop_camera(camera)
         return 1
 
-def run_v2(camera, proc, args, pb):
+def run_v2(camera, proc, args, pb, data=None):
     try:
-        frame = read_frame(camera=camera, color=args.color, height=args.height, width=args.width)
-        data = frame.tobytes()
-        output = write_to_ffmpeg(proc, data)
+        if data is None:
+            frame = read_frame(camera=camera, color=args.color, height=args.height, width=args.width)
+            data = frame
+        
+        write_to_ffmpeg(proc, data)
         if pb: pb.update(1)
-        cv2.imshow("frame", cv2.resize(frame, (300, 300)))  
-        if cv2.waitKey(1) == ord("q"):
-            raise QuitException
+        if  args.preview:
+            cv2.imshow("frame", cv2.resize(frame, (300, 300)))  
+            if cv2.waitKey(1) == ord("q"):
+                raise QuitException
         return 0
     except (KeyboardInterrupt, QuitException):
         stop_camera(camera)
@@ -121,7 +136,9 @@ def main(ap=None, args=None):
         
         
     command = make_command(args.device, width=args.width, height=args.height, fps=args.fps, output=args.output)
-    
+    default_data = np.random.randint(0, 256, (args.height, args.width, 1), dtype=np.uint8).tobytes()
+
+
     if VERSION == 1:
         proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     elif VERSION == 2:
@@ -131,14 +148,23 @@ def main(ap=None, args=None):
     pb = tqdm()
     pb = None
 
-    while True:
-        if VERSION == 1:
-            status = run_v1(camera, proc, args, pb)
-        elif VERSION == 2:
-            status = run_v2(camera, proc, args, pb)
+    if args.debug_bytes_conversion:
+        data = default_data
+    else:
+        data = None
+    
+    try:
+        while True:
+            if VERSION == 1:
+                status = run_v1(camera, proc, args, pb, data=data)
+            elif VERSION == 2:
+                status = run_v2(camera, proc, args, pb, data=data)
 
-        if status:
-            break
+            if status:
+                break
+    
+    except KeyboardInterrupt:
+        pass
 
     proc.stdin.close()
     if proc.stderr:
