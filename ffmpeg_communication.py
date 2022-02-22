@@ -26,7 +26,7 @@ def make_command(device, width, height, fps, output=None):
     if device == "cpu":
 
         command = f"ffmpeg -y  -f rawvideo  -pix_fmt {PIX_FMT}"\
-            f" -s {width}x{height} -r {str(fps)}"
+            f" -s {width}x{height} -r {fps}"
 
         
         if output is None:
@@ -37,7 +37,7 @@ def make_command(device, width, height, fps, output=None):
     elif device == "gpu":
         command = f"ffmpeg -y -f rawvideo -pix_fmt {PIX_FMT}"\
             " -vsync 0 -hwaccel cuda"\
-            f" -s {width}x{height} -r {str(fps)}"
+            f" -s {width}x{height} -r {fps}"
         
         if output is None:
             command += f" -i - -an -c:v h264_nvenc -f null - "
