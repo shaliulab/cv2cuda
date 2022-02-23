@@ -10,19 +10,12 @@ import time
 
 from tqdm import tqdm
 import numpy as np
-import cv2
+from cameras import AsyncCamera, SimCamera
+from pipeline import run_v1, run_v2, run_v3
+from ffmpeg_communication import init_ffmpeg, make_command
+import multiprocessing
 
-try:
-    from baslerpi.io.cameras import BaslerCamera
-    BaslerCameraImport = True
-except ImportError:
-    BaslerCameraImport = False
-
-
-
-from ffmpeg_communication import init_ffmpeg, write_to_ffmpeg, make_command
-
-VERSION=2
+VERSION=3
 
 def get_parser(ap=None):
     if ap is None:
@@ -39,96 +32,7 @@ def get_parser(ap=None):
     ap.add_argument("--debug-bytes-conversion", dest="debug_bytes_conversion", default=False, action="store_true")
     return ap
 
-
-
-
-def read_frame(camera, color=False, height=2178, width=3860):
-    
-    if BaslerCameraImport and isinstance(camera, BaslerCamera):
-        frame = camera._next_image()[0]
-    else:
-        frame = camera()
-
-    if color:
-        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
-    return frame
-
-
-def init_camera(camera, width, height, fps):
-    if camera:
-        camera = BaslerCamera(
-            width=width,
-            height=height,
-            framerate=fps,
-            exposure=24000,
-            iso=0,
-            drop_each=1,
-            use_wall_clock=False,
-            timeout=30000,
-            resolution_decrease=None,
-            rois=None,
-            start_time=time.time(),
-            idx=0
-        )
-        camera.open(buffersize=100)
-
-    else:
-        frame  = np.random.randint(0, 256, (height, width, 1), dtype=np.uint8)
-
-        def camera():
-            return frame
-
-    return camera
-
-
-def stop_camera(camera):
-
-    if BaslerCameraImport and isinstance(camera, BaslerCamera):
-        return camera.close()
-    else:
-        return
-
-
-class QuitException(Exception):
-    pass
-
-
-def run_v1(camera, proc, args, pb, data=None):
-    try:
-        if data is None:
-            frame = read_frame(camera=camera, color=args.color, height=args.height, width=args.width)
-            data = frame
-
-        proc.stdin.write(data)
-        if pb: pb.update(1)
-        if  args.preview:
-            cv2.imshow("frame", cv2.resize(frame, (300, 300)))  
-            if cv2.waitKey(1) == ord("q"):
-                raise QuitException
-        return 0
-    except (KeyboardInterrupt, QuitException):
-        stop_camera(camera)
-        return 1
-
-def run_v2(camera, proc, args, pb, data=None):
-    try:
-        if data is None:
-            frame = read_frame(camera=camera, color=args.color, height=args.height, width=args.width)
-            data = frame
-        
-        write_to_ffmpeg(proc, data)
-        if pb: pb.update(1)
-        if  args.preview:
-            cv2.imshow("frame", cv2.resize(frame, (300, 300)))  
-            if cv2.waitKey(1) == ord("q"):
-                raise QuitException
-        return 0
-    except (KeyboardInterrupt, QuitException):
-        stop_camera(camera)
-        return 1
-
-  
+ 
 def main(ap=None, args=None):
     if args is None:
         ap = get_parser(ap=ap)
@@ -139,12 +43,21 @@ def main(ap=None, args=None):
     default_data = np.random.randint(0, 256, (args.height, args.width, 1), dtype=np.uint8)
 
 
+    if args.camera == "Basler":
+        CameraClass = AsyncCamera
+    else:
+        CameraClass = SimCamera
+
+
     if VERSION == 1:
         proc = subprocess.Popen(command, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-    elif VERSION == 2:
+    elif VERSION == 2 or VERSION == 3:
         proc = init_ffmpeg(cmd=command)
 
-    camera = init_camera(args.camera, width=args.width, height=args.height, fps=args.fps)
+    queue=multiprocessing.Queue(1)
+    stop_queue = multiprocessing.Queue(1)
+    camera = CameraClass(queue=queue, stop_queue=stop_queue, width=args.width, height=args.height, fps=args.fps)
+    
     pb = tqdm()
     pb = None
 
@@ -159,7 +72,8 @@ def main(ap=None, args=None):
                 status = run_v1(camera, proc, args, pb, data=data)
             elif VERSION == 2:
                 status = run_v2(camera, proc, args, pb, data=data)
-
+            elif VERSION == 3:
+                status = run_v3(camera, proc, args, pb, data=data)
             if status:
                 break
     
