@@ -12,6 +12,8 @@ from tqdm import tqdm
 import numpy as np
 import cv2
 
+
+from decorator import timing
 try:
     from baslerpi.io.cameras import BaslerCamera
     BaslerCameraImport = True
@@ -41,7 +43,7 @@ def get_parser(ap=None):
 
 
 
-
+@timing
 def read_frame(camera, color=False, height=2178, width=3860):
     
     if BaslerCameraImport and isinstance(camera, BaslerCamera):
