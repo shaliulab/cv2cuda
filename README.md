@@ -12,7 +12,7 @@ Instead, we use [ffmpeg](https://www.ffmpeg.org/) built with CUDA support to enc
 # How to run
 
 ```
-cv2cuda --device gpu --width 2000 --height 2000 --fps 45  --color --output output.mp4
+cv2cuda --device gpu --width 2000 --height 2000 --fps 45 --output output.mp4
 ```
 
 # Implementation details
