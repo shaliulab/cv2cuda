@@ -47,9 +47,8 @@ class TestVideoWriter(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        # self._mp4_file = tempfile.NamedTemporaryFile(suffix=".mp4")
-        self._mp4_file = argparse.Namespace(name="/home/vibflysleep/Downloads/BigBuckBunny.mp4")
-        # download_file(BIGBUCKBUNNY_WEB, self._mp4_file.name)
+        self._mp4_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+        download_file(BIGBUCKBUNNY_WEB, self._mp4_file.name)
         
     def setUp(self):
         self._output = tempfile.NamedTemporaryFile(suffix=".mp4")
