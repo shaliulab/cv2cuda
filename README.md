@@ -1,13 +1,26 @@
+A replacement for cv2.videoWriter with CUDA support in Linux, [which is currently not supported](https://github.com/opencv/opencv_contrib/issues/3044)
+Instead, we use [ffmpeg](https://www.ffmpeg.org/) built with CUDA support to encode and save frames.
+
+Following the guides from NVIDIA, ffmpeg and StackOverflow:
+
+  * https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/#commonly-faced-issues-and-tips-to-resolve-them
+  * https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu
+  * https://stackoverflow.com/a/55747785/3541756
+
+
+# Tested requirements
+
+* NVIDIA GPU
+* CUDA 11.3.r11.3
+* Ubuntu 20.04.4 LTS
+* Python 3.8.12
+
+
 # How to run
 
 ```
-python ffmpeg_gpu_benchmark.py  --device gpu --width 2000 --height 2000 --fps 45  --color --output output.mp4
+cv2cuda --device gpu --width 2000 --height 2000 --fps 45  --color --output output.mp4
 ```
-
-# Issues:
-
-* FPS using GPU doesn't go further than 37, but it should given that the CPU can already do 32
-* Using the GPU still causes heavy CPU usage
 
 # Versions
 
