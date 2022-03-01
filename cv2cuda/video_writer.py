@@ -62,6 +62,13 @@ class FFMPEGVideoWriter:
 
     @timeit
     def write(self, image):
+        if len(image.shape) == 3:
+            logging.warning(
+                "Color frames are not supported, please provide gray images to remove this warning"\
+                " I will force the frames gray now"
+            )
+            image = cv2.cvtColor(image, cv2.COLOR_BAYER_BG2GRAY)
+
         self._ffmpeg.write(image)
         self._count += 1
         if self._count == self._maxframes:

@@ -29,23 +29,27 @@ def download_file(resource, destination):
     print(f"Downloading {resource} -> {destination}")
     urllib.request.urlretrieve(resource, destination, show_progress)
 
-def get_video_writer(output):
+def get_video_writer(output, fps):
     return VideoWriter(
                 filename = output,
                 apiPreference="FFMPEG",
                 fourcc="h264_nvenc",
-                fps=24,
+                fps=fps,
                 frameSize=(1280, 720),
                 isColor=False,
             )
-            
+   
 
 class TestVideoWriter(unittest.TestCase):
 
+    NFRAMES=1200
+    FPS=24
+
     @classmethod
     def setUpClass(self):
-        self._mp4_file = tempfile.NamedTemporaryFile(suffix=".mp4")
-        download_file(BIGBUCKBUNNY_WEB, self._mp4_file.name)
+        # self._mp4_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+        self._mp4_file = argparse.Namespace(name="/home/vibflysleep/Downloads/BigBuckBunny.mp4")
+        # download_file(BIGBUCKBUNNY_WEB, self._mp4_file.name)
         
     def setUp(self):
         self._output = tempfile.NamedTemporaryFile(suffix=".mp4")
@@ -53,7 +57,7 @@ class TestVideoWriter(unittest.TestCase):
 
     def test_VideoWriter_initializes(self):
 
-        video_writer = get_video_writer(self._output.name)        
+        video_writer = get_video_writer(self._output.name, self.FPS)        
 
         self.assertTrue(isinstance(video_writer, VideoWriter))
         self.assertTrue("write" in dir(video_writer))
@@ -61,9 +65,9 @@ class TestVideoWriter(unittest.TestCase):
 
     def test_VideoWriter_writes(self):
 
-        video_writer = get_video_writer(self._output.name)        
+        video_writer = get_video_writer(self._output.name, self.FPS)        
 
-        for i in range(1200):
+        for i in range(self.NFRAMES):
             ret, frame = self._cap.read()
             # color data not supported
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -73,6 +77,11 @@ class TestVideoWriter(unittest.TestCase):
         self.assertTrue(os.path.exists(self._output.name))
         file_size = os.path.getsize(self._output.name)
         self.assertTrue(file_size == 13267725)
+
+        video = cv2.VideoCapture(self._output.name)
+        self.assertTrue(video.get(cv2.CAP_PROP_FPS) == self.FPS)
+        self.assertTrue(video.get(cv2.CAP_PROP_FRAME_COUNT) == self.NFRAMES)
+        video.release()
         
     def tearDown(self):
         self._cap.release()
