@@ -1,13 +1,6 @@
 A replacement for cv2.videoWriter with CUDA support in Linux, [which is currently not supported](https://github.com/opencv/opencv_contrib/issues/3044)
 Instead, we use [ffmpeg](https://www.ffmpeg.org/) built with CUDA support to encode and save frames.
 
-Following the guides from NVIDIA, ffmpeg and StackOverflow:
-
-  * https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/#commonly-faced-issues-and-tips-to-resolve-them
-  * https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu
-  * https://stackoverflow.com/a/55747785/3541756
-
-
 # Tested requirements
 
 * NVIDIA GPU
@@ -20,6 +13,64 @@ Following the guides from NVIDIA, ffmpeg and StackOverflow:
 
 ```
 cv2cuda --device gpu --width 2000 --height 2000 --fps 45  --color --output output.mp4
+```
+
+# Implementation details
+
+
+## FFMPEG
+
+Following the guides from NVIDIA, ffmpeg and StackOverflow:
+
+  * https://docs.nvidia.com/video-technologies/video-codec-sdk/ffmpeg-with-nvidia-gpu/#commonly-faced-issues-and-tips-to-resolve-them
+  * https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu
+  * https://stackoverflow.com/a/55747785/3541756
+
+an ffmpeg subprocess is used to receive Python's standard output and encode it into a video using GPU hardware acceleration.
+The ffmpeg command has the following structure
+
+```
+ffmpeg -y -r FRAMERATE -f rawvideo -pix_fmt gray -vsync 0 -extra_hw_frames 2 -s WIDTHxHEIGHT -i - -an -c:v h264_nvenc OUTPUT.mp4
+```
+
+* `-y -r FRAMERATE` tells ffmpeg to ignore and overwrite any existing data in the output and sets the framerate 
+*  `-f rawvideo -pix_fmt gray` tells ffmpeg that the input will be raw video (which matches what Python outputs), and the pixel format is gray (only gray is supported for now by cv2cuda)
+
+* `-vsync 0 -extra_hw_frames 2` are flags that I have read can improve the performance. But I am not sure why and maybe they dont. They could potentially be removed
+*  `-s WIDTHxHEIGHT` tells ffmpeg what width and height to expect in the incoming frames
+* `-i -` tells ffmpeg to read input from the standard input (i.e. to listen to Python)
+* `-an` tells ffmpeg there is no audio input
+* `c:v h264_nvenc` tells ffmpeg to use hardware acceleration by using the NVIDIA h264_nvenc codec for encoding
+* `OUTPUT.mp4` (or whatever path) is the output file
+
+This command is built and run for you when you use cv2cuda
+
+## VideoWrirter
+
+The cv2cuda package provides a drop-in replacement for the popular `cv2.VideoWriter` class called `cv2cuda.VideoWriter`.
+It has functionality very similar to the original `cv2.VideoWriter` but uses ffmpeg behind the scenes to make use of the GPU. Thus it is a solution to the issue posed here https://github.com/opencv/opencv_contrib/issues/3044
+
+You can initialize like so:
+
+```
+video_writer = cv2cuda.VideoWriter(
+                filename = output_mp4,
+                apiPreference="FFMPEG",
+                fourcc="h264_nvenc",
+                fps=fps,
+                frameSize=frameSize,
+                isColor=False,
+)
+```
+
+i.e. just like the `cv2.VideoWriter`
+
+
+You can add frames to the video, and stop it, in a way identical to the `cv2.VideoWriter`
+
+```
+video_writer.write(frame)
+video_writer.release()
 ```
 
 # Versions
