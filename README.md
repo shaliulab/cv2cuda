@@ -9,7 +9,7 @@ Instead, we use [ffmpeg](https://www.ffmpeg.org/) built with CUDA support to enc
 * Python 3.8.12
 
 
-# How to run
+# Quick encoding test from a random image with 2000x2000 image at 45 FPS
 
 ```
 cv2cuda --device gpu --width 2000 --height 2000 --fps 45 --output output.mp4
@@ -45,7 +45,7 @@ ffmpeg -y -r FRAMERATE -f rawvideo -pix_fmt gray -vsync 0 -extra_hw_frames 2 -s 
 
 This command is built and run for you when you use cv2cuda
 
-## VideoWrirter
+## VideoWriter
 
 The cv2cuda package provides a drop-in replacement for the popular `cv2.VideoWriter` class called `cv2cuda.VideoWriter`.
 It has functionality very similar to the original `cv2.VideoWriter` but uses ffmpeg behind the scenes to make use of the GPU. Thus it is a solution to the issue posed here https://github.com/opencv/opencv_contrib/issues/3044
