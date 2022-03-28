@@ -14,11 +14,12 @@ def get_parser():
     ap.add_argument("--width", type=int, default=3860, help="width attribute of the camera and width of the recorded frames")
     ap.add_argument("--height", type=int, default=2178, help="height attribute of the camera and height of the recorded frames")
     ap.add_argument("--fps", type=int, default=30, help="Framerate of recording")
+    ap.add_argument("--input", type=str, default="output", help="Input mp4")
     ap.add_argument("--output", type=str, default="output", help="Folder where output should be produced")
-    ap.add_argument(
-        "--camera", type=str, default="virtual",
-        choices=["virtual", "Basler", "opencv"]
-    )
+    # ap.add_argument(
+    #     "--camera", type=str, default="virtual",
+    #     choices=["virtual", "Basler", "opencv"]
+    # )
     ap.add_argument("--device", default=0, help="Device to be used for encoding of video. Use cpu or gpu. An integer is understood as a GPU id")
     ap.add_argument(
         "--backend", type=str, default="FFMPEG", choices=["FFMPEG", "cv2"],

@@ -1,4 +1,3 @@
-from importlib.metadata import entry_points
 from setuptools import setup, find_packages
 
 PACKAGE_NAME = "cv2cuda"

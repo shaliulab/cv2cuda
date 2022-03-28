@@ -8,8 +8,9 @@ from cv2cuda import VideoWriter
 import progressbar
 
 BIGBUCKBUNNY_WEB = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-
+TEMP=False
 pbar = None
+DATA_DIR = "./cv2cuda/tests/static_data/"
 
 def show_progress(block_num, block_size, total_size):
     global pbar
@@ -26,8 +27,9 @@ def show_progress(block_num, block_size, total_size):
 
 
 def download_file(resource, destination):
-    print(f"Downloading {resource} -> {destination}")
-    urllib.request.urlretrieve(resource, destination, show_progress)
+    if not os.path.exists(destination):
+        print(f"Downloading {resource} -> {destination}")
+        urllib.request.urlretrieve(resource, destination, show_progress)
 
 def get_video_writer(output, fps):
     return VideoWriter(
@@ -47,11 +49,19 @@ class TestVideoWriter(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self._mp4_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+        if TEMP:
+            self._mp4_file = tempfile.NamedTemporaryFile(suffix=".mp4")
+        else:
+            self._mp4_file = argparse.Namespace(name=os.path.join(DATA_DIR, "BigBuckBunny.mp4"))
+
         download_file(BIGBUCKBUNNY_WEB, self._mp4_file.name)
         
     def setUp(self):
-        self._output = tempfile.NamedTemporaryFile(suffix=".mp4")
+        if TEMP:
+            self._output = tempfile.NamedTemporaryFile(suffix=".mp4")
+        else:
+            self._output = argparse.Namespace(name=os.path.join(DATA_DIR, "BigBuckBunny_output.mp4"))
+        
         self._cap = cv2.VideoCapture(self._mp4_file.name)
 
     def test_VideoWriter_initializes(self):
@@ -75,7 +85,7 @@ class TestVideoWriter(unittest.TestCase):
         
         self.assertTrue(os.path.exists(self._output.name))
         file_size = os.path.getsize(self._output.name)
-        self.assertTrue(file_size == 13267725)
+        self.assertEqual(file_size, 13279390)
 
         video = cv2.VideoCapture(self._output.name)
         self.assertTrue(video.get(cv2.CAP_PROP_FPS) == self.FPS)
