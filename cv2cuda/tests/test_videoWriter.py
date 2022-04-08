@@ -11,6 +11,8 @@ BIGBUCKBUNNY_WEB = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sa
 TEMP=False
 pbar = None
 DATA_DIR = "./cv2cuda/tests/static_data/"
+assert os.path.exists("./cv2cuda/tests/")
+os.makedirs(DATA_DIR, exist_ok=True)
 
 def show_progress(block_num, block_size, total_size):
     global pbar
