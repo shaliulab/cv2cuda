@@ -7,10 +7,11 @@ setup(
     version="1.0.1",
     install_requires=["opencv-python", "numpy"],
     packages=find_packages(),
-    extras_requires={"profile": ["pynvml"], "test": ["progressbar"]},
+    extras_require={"profile": ["pynvml"], "test": ["progressbar"]},
     entry_points={
         "console_scripts": [
-            "cv2cuda=cv2cuda.bin.main:main" 
+            "cv2cuda=cv2cuda.bin.main:main"
         ]
     },
+    python_requires=">=3.8.12"
 )
