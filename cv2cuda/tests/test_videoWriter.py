@@ -89,6 +89,8 @@ class TestVideoWriter(unittest.TestCase):
         file_size = os.path.getsize(self._output.name)
         self.assertEqual(file_size, 13279390)
 
+    def test_VideoWriter_result_plays_back(self):
+
         video = cv2.VideoCapture(self._output.name)
         self.assertTrue(video.get(cv2.CAP_PROP_FPS) == self.FPS)
         self.assertTrue(video.get(cv2.CAP_PROP_FRAME_COUNT) == self.NFRAMES)
@@ -106,3 +108,4 @@ class TestVideoWriter(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
