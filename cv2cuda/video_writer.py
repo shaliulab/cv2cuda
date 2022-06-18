@@ -121,7 +121,7 @@ class FFMPEGVideoWriter:
 
     def release(self):
         code = self._ffmpeg.terminate()
-        print(f"Termination code for {self._ffmpeg._command}: {code}")
+        logger.info(f"Termination code for {self._ffmpeg._command}: {code}")
         self._terminate_time = time.time()
         try:
             status = self._ffmpeg.wait(self._TIMEOUT)

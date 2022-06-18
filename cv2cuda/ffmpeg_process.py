@@ -38,7 +38,7 @@ class FFMPEG:
     def _validate_popen(self):
 
         if self._process.poll() is None:
-            print(f"{self._command} is alive")
+            logger.info(f"{self._command} is alive")
 
 
     def _setup(self, width, height, fps, output, device="gpu", codec="h264_nvenc", encode=True):
