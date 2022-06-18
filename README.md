@@ -6,7 +6,7 @@ Instead, we use [ffmpeg](https://www.ffmpeg.org/) built with CUDA support to enc
 * NVIDIA GPU
 * CUDA 11.3.r11.3
 * Ubuntu 20.04.4 LTS
-* Python 3.8.12
+* Python 3.8.10
 
 
 # Quick encoding test from a random image with 2000x2000 image at 45 FPS
