@@ -15,5 +15,5 @@ setup(
 
         ]
     },
-    python_requires=">=3.8.12"
+    python_requires=">=3.8.10"
 )

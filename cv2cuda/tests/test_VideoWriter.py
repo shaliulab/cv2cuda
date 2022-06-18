@@ -100,7 +100,7 @@ class TestVideoWriter(unittest.TestCase):
         
         self.assertTrue(os.path.exists(self._output.name))
         file_size = os.path.getsize(self._output.name)
-        self.assertEqual(file_size, 13279390)
+        self.assertAlmostEqual(file_size, 13279390, delta=20000)
         if file_size == 0:
             # TODO This message is now showing in the output of the unittest run
             raise Exception(
