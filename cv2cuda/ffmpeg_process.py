@@ -78,8 +78,6 @@ class FFMPEG:
         if not self._terminate_event:
             with self._lock:
                 try:
-                    # import numpy as np
-                    # image = np.random.randint(0, 255, image.shape)
                     self._process.stdin.write(image)
                     write_log.debug(f"{image.shape} to {self._command}")
                 except BrokenPipeError as error:

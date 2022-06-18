@@ -108,6 +108,16 @@ class FFMPEGVideoWriter:
 
 
     def _check_deps(self):
+        # TODO
+        # Write some code that
+        # 1. Checks ffmpeg is installed and can be called with the syntax
+        # ffmpeg -y -loglevel warning -r 40.0 -f rawvideo -pix_fmt gray -vsync 0 -extra_hw_frames 2 -s NxM \ 
+        #   -i - -an -c:v h264_nvenc video.mp4
+        # 2. Checks that the right CUDA drivers are installed (so ffmpeg can use them)
+
+        # For now, the user really checks if this is fine just by running the program
+        # and checking if an error immediately pops up
+        
         pass
         # self._check_ffmpeg()
         # self._check_cuda()
@@ -153,11 +163,11 @@ VideoWriter = FFMPEGVideoWriter
 
 
 class CV2VideoWriter(cv2.VideoWriter):
+    """
+    A clone of the standard cv2.VideoWriter, with a timer for the write method
+    """
 
     @timeit
     def write(self, *args, **kwargs):
         return super().write(*args, **kwargs)
 
-    @timeit
-    def read(self, *args, **kwargs):
-        return super().read(*args, **kwargs)

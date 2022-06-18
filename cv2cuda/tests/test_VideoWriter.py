@@ -3,6 +3,8 @@ import unittest
 import tempfile
 import os
 import urllib.request
+import warnings
+
 import cv2
 from cv2cuda import VideoWriter
 try:
@@ -99,6 +101,16 @@ class TestVideoWriter(unittest.TestCase):
         self.assertTrue(os.path.exists(self._output.name))
         file_size = os.path.getsize(self._output.name)
         self.assertEqual(file_size, 13279390)
+        if file_size == 0:
+            # TODO This message is now showing in the output of the unittest run
+            raise Exception(
+                """Output video is empty.
+                This is probably caused by the CUDA encoder
+                not being available for ffmpeg
+                """
+            )
+            #     stacklevel=2
+            # )
 
     def test_VideoWriter_result_plays_back(self):
 
@@ -109,14 +121,11 @@ class TestVideoWriter(unittest.TestCase):
         
     def tearDown(self):
         self._cap.release()
-        # os.remove(self._output.name)
     
     @classmethod
     def tearDownClass(self):
         pass
-        # os.remove(self._mp4_file.name)
 
 
 if __name__ == "__main__":
     unittest.main()
-

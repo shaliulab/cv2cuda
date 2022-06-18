@@ -1,7 +1,11 @@
 import logging
 import time
 
-import numpy as np
+try:
+    import numpy as np # type: ignore
+except ModuleNotFoundError:
+    raise Exception("The capture module requires numpy installed (pip install numpy)")
+
 import cv2
 
 from cv2cuda.decorator import timeit
