@@ -9,12 +9,12 @@ from abc import ABC
 import cv2
 import cv2cuda
 import cv2cuda.utils.cpu as cpu_utils
-
-try:
-    from baslerpi.io.cameras import BaslerCamera #pyright: reportMissingImports=false
-    BASLER_CAMERA_ENABLED=True
-except ImportError:
-    BASLER_CAMERA_ENABLED=False
+SUPPORTED_CAMERAS=["virtual", "opencv"]
+# try:
+#     from scicam.io.cameras import BaslerCamera #pyright: reportMissingImports=false
+#     BASLER_CAMERA_ENABLED=True
+# except ImportError:
+#     BASLER_CAMERA_ENABLED=False
 
 try:
     import cv2cuda.utils.gpu as gpu_utils
@@ -28,44 +28,44 @@ def get_queue(size):
 
 
 def get_camera(camera, width, height, fps, idx=0):
+
+    if camera not in SUPPORTED_CAMERAS:
+        raise Exception(f"Passed camera {camera} is not one of the supported cameras: {SUPPORTED_CAMERAS}")
     
-    if camera == "virtual":
+    elif camera == "virtual":
         cap = cv2cuda.VideoCapture(idx)
         cap.set(cv2.CAP_PROP_FPS, fps)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     
-    elif camera == "Basler":
-        if not BASLER_CAMERA_ENABLED:
-            raise Exception("Basler camera not supported")
-        else:
-            exposure = int(14000)
-            print(exposure)
+    # elif camera == "Basler":
+    #     if not BASLER_CAMERA_ENABLED:
+    #         raise Exception("Basler camera not supported")
+    #     else:
+    #         exposure = int(14000)
+    #         print(exposure)
 
-            cap = BaslerCamera(
-                width=width,
-                height=height,
-                framerate=fps,
-                exposure=exposure,
-                iso=0,
-                drop_each=1,
-                use_wall_clock=False,
-                timeout=30000,
-                resolution_decrease=None,
-                rois=None,
-                start_time=time.time(),
-                idx=idx
-            )
-            cap.open(buffersize=100)
+    #         cap = BaslerCamera(
+    #             width=width,
+    #             height=height,
+    #             framerate=fps,
+    #             exposure=exposure,
+    #             iso=0,
+    #             drop_each=1,
+    #             use_wall_clock=False,
+    #             timeout=30000,
+    #             resolution_decrease=None,
+    #             rois=None,
+    #             start_time=time.time(),
+    #             idx=idx
+    #         )
+    #         cap.open(buffersize=100)
 
     elif camera == "opencv":
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FPS, fps)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-
-    else:
-        raise Exception("Passed supported camera [virtual,Basler,opencv]")
 
     return cap
 
@@ -124,7 +124,7 @@ def get_video_writer(output, fps, frameSize, backend="FFMPEG", device="gpu", **k
 
 
 
-class BaseProcess(ABC):
+class BaseProgram(ABC):
 
 
     def __init__(self, idx, stop_queue, width, height, fps, profile, output, *args, camera="virtual", backend="FFMPEG", device="0", yes=False, duration=math.inf, **kwargs):
@@ -273,8 +273,8 @@ class BaseProcess(ABC):
             pass
 
 
-class Process(BaseProcess, multiprocessing.Process):
+class Process(BaseProgram, multiprocessing.Process):
     pass
 
-class Thread(BaseProcess, threading.Thread):
+class Thread(BaseProgram, threading.Thread):
     pass

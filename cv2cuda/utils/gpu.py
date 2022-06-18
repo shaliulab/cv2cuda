@@ -1,4 +1,4 @@
-import pynvml as N
+import pynvml as N # type: ignore
 
 def init_pynvml_handlers(index):
     N.nvmlInit()

@@ -11,7 +11,6 @@ from cv2cuda.decorator import timeit
 
 logger = logging.getLogger(__name__)
 check_log = logging.getLogger(__name__ + ".check")
-# check_log.setLevel(logging.DEBUG)
 
 
 class FFMPEGVideoWriter:
@@ -19,6 +18,7 @@ class FFMPEGVideoWriter:
     A cv2.VideoWriter-like interface that supports FFMPEG+CUDA
     for faster and efficient encoding of videos
     """
+
     _TIMEOUT=3
 
     def __init__(self, filename, apiPreference, fourcc, fps, frameSize, isColor=False, maxframes=math.inf, yes=True, device="gpu"):
@@ -52,19 +52,26 @@ class FFMPEGVideoWriter:
 
 
         if isColor:
-            raise Exception(f"User supplied isColor={isColor}."\
-                f" cv2cuda.VideoWriter does not support color."\
-                " Terminating ..."
+            raise Exception(
+                f"""User supplied isColor={isColor}.
+                cv2cuda.VideoWriter does not support color.
+                Terminating ...
+                """
             )
                 
         if maxframes is not math.inf:
-            logger.warning(f"User supplied maxframes={maxframes}."\
-                f" Program calling cv2cuda.VideoWriter may malfunction after {maxframes} are captured")
+            logger.warning(
+                f"""
+                User supplied maxframes={maxframes}.
+                Program calling cv2cuda.VideoWriter may malfunction after {maxframes} are captured
+                """
+            )
 
         if device != "gpu":
             logger.warning(
-                f"User supplied device={device}."\
-                " The GPU and CUDA drivers will NOT be used."
+                f"""User supplied device={device}.
+                The GPU and CUDA drivers will NOT be used.
+                """
             )
 
         self._ffmpeg = FFMPEG(width, height=height, fps=fps, output=filename, device=device, codec=fourcc, encode=True)
@@ -75,8 +82,10 @@ class FFMPEGVideoWriter:
         if len(image.shape) == 3:
             if not self._already_warned:
                 logger.warning(
-                    "Color frames are not supported, please provide gray images to remove this warning"\
-                    " I will force the frames gray now"
+                    """
+                    Color frames are not supported, please provide gray images to remove this warning
+                    I will force the frames gray now, which may add computational time which could be spared
+                    """
                 )
                 self._already_warned = True
 

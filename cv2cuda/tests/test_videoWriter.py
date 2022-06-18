@@ -5,7 +5,18 @@ import os
 import urllib.request
 import cv2
 from cv2cuda import VideoWriter
-import progressbar
+try:
+    import progressbar # type: ignore
+    PROGRESSBAR_AVAILABLE=True
+except ModuleNotFoundError:
+    print(
+        """Install progressbar (pip install progressbar)
+        if you want to visualize the progression
+        of the download of the BigBuckBunny test video
+        """
+    )
+    
+    PROGRESSBAR_AVAILABLE=False
 
 BIGBUCKBUNNY_WEB = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 TEMP=False
@@ -16,14 +27,14 @@ os.makedirs(DATA_DIR, exist_ok=True)
 
 def show_progress(block_num, block_size, total_size):
     global pbar
-    if pbar is None:
+    if pbar is None and PROGRESSBAR_AVAILABLE:
         pbar = progressbar.ProgressBar(maxval=total_size)
         pbar.start()
 
     downloaded = block_num * block_size
-    if downloaded < total_size:
+    if downloaded < total_size and PROGRESSBAR_AVAILABLE:
         pbar.update(downloaded)
-    else:
+    elif PROGRESSBAR_AVAILABLE:
         pbar.finish()
         pbar = None
 
