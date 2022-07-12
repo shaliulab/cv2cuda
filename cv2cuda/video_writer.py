@@ -20,6 +20,7 @@ class FFMPEGVideoWriter:
     """
 
     _TIMEOUT=3
+    _CODEC_BURNIN_PERIOD=5 # seconds
 
     def __init__(self, filename, apiPreference, fourcc, fps, frameSize, isColor=False, maxframes=math.inf, yes=True, device="gpu"):
 
@@ -76,6 +77,21 @@ class FFMPEGVideoWriter:
 
         self._ffmpeg = FFMPEG(width, height=height, fps=fps, output=filename, device=device, codec=fourcc, encode=True)
 
+        _filename, extension = os.path.splitext(filename)
+        if extension == ".mp4" and fourcc == "h264_nvenc":
+            self._hq_video_writer = cv2.VideoWriter(
+                f"{_filename}.avi",
+                cv2.VideoWriter_fourcc(*"DIVX"),
+                frameSize=(width, height),
+                fps=fps,
+                isColor=False,
+            )
+            self._hq_video_writer_open = True
+
+        else:
+            self._hq_video_writer = None
+            self._hq_video_writer_open = False
+
 
     @timeit
     def write(self, image):
@@ -92,6 +108,12 @@ class FFMPEGVideoWriter:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         self._ffmpeg.write(image)
+        if self._hq_video_writer and self._count < (self._CODEC_BURNIN_PERIOD * self._fps):
+            self._hq_video_writer.write(image)
+        elif self._hq_video_writer_open:
+            self._hq_video_writer.release()
+            self._hq_video_writer_open = False
+
         self._count += 1
         if self._count == self._maxframes:
             self.release()
