@@ -2,7 +2,6 @@ import subprocess
 import shlex
 import logging
 import threading
-import time
 
 PIX_FMT = "gray" # graycolor format
 
@@ -26,7 +25,8 @@ class FFMPEG:
             cmd,
             stdin=registers[0],
             stdout=registers[1],
-            shell=False
+            shell=False,
+            bufsize=0,
         )
         self._terminate_event = False
 
@@ -55,11 +55,8 @@ class FFMPEG:
             else:
                 command += f" -i - -an -c:v {codec} {output}"
 
-            registers = (subprocess.PIPE, None)
-
-
         elif device == "cpu":
-                command = f"ffmpeg -y -loglevel warning -r {fps} -f rawvideo  -pix_fmt {PIX_FMT}"\
+                command = f"ffmpeg -loglevel warning -y  -r {fps} -f rawvideo  -pix_fmt {PIX_FMT}"\
                     f" -s {width}x{height}"
                 if output is None:
                     command += f" -i - -an -vcodec {codec} -f null -"
@@ -75,11 +72,12 @@ class FFMPEG:
 
 
     def write(self, image):
+
         if not self._terminate_event:
             with self._lock:
                 try:
                     self._process.stdin.write(image)
-                    write_log.debug(f"{image.shape} to {self._command}")
+                    # write_log.debug(f"{image.shape} to {self._command}")
                 except BrokenPipeError as error:
                     write_log.warning(
                         "The FFMPEG process\n"\
@@ -91,23 +89,26 @@ class FFMPEG:
 
     def terminate(self):
         with self._lock:
-            terminate_log.debug(f"Closing standard input of {self._command}")
-            self._process.stdin.close()
             self._terminate_event = True
-            terminate_log.debug(f"Terminating {self._command}")
-            # terminate_log.debug(f"Sleeping 10 seconds")
-            # time.sleep(10)
-            code = self._process.terminate()
-            terminate_log.debug(f"CODE: {code}")
-            return code
+            logger.debug(f"Terminating {self._command}")
+            self._process.stdin.close()
+            self._process.terminate()
+            self._process.communicate()
+            self._process.poll()
+            assert self._process.returncode is not None
 
-    
+
     def kill(self):
+        self._process.stdin.close()
         return self._process.kill()
         
 
     def poll(self):
         return self._process.poll()
+
+    @property
+    def returncode(self):
+        return self._process.returncode
 
 
     def wait(self, *args, **kwargs):

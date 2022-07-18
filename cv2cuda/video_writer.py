@@ -1,4 +1,5 @@
 import time
+import subprocess
 import traceback
 import os.path
 import math
@@ -37,8 +38,20 @@ class FFMPEGVideoWriter:
         self._count = 0
         self._maxframes = maxframes
         self._already_warned = False
+        self._is_released = False
 
         self._check_deps()
+
+        ODD_WRONG=1
+
+        if width % 2 == ODD_WRONG:
+            width-=1
+
+        if height % 2 == ODD_WRONG:
+            height-=1
+
+        self._width = width
+        self._height = height
 
 
         if os.path.exists(filename):
@@ -75,7 +88,7 @@ class FFMPEGVideoWriter:
                 """
             )
 
-        self._ffmpeg = FFMPEG(width, height=height, fps=fps, output=filename, device=device, codec=fourcc, encode=True)
+        self._ffmpeg = FFMPEG(width=width, height=height, fps=fps, output=filename, device=device, codec=fourcc, encode=True)
 
         _filename, extension = os.path.splitext(filename)
         if extension == ".mp4" and fourcc == "h264_nvenc":
@@ -92,6 +105,13 @@ class FFMPEGVideoWriter:
             self._hq_video_writer = None
             self._hq_video_writer_open = False
 
+    def ensure_size(self, img):
+        return img[:self._height, :self._width]
+
+
+    def __str__(self):
+        return self._filename
+
 
     @timeit
     def write(self, image):
@@ -107,6 +127,7 @@ class FFMPEGVideoWriter:
 
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
+        image = self.ensure_size(image)
         self._ffmpeg.write(image)
         if self._hq_video_writer and self._count < (self._CODEC_BURNIN_PERIOD * self._fps):
             self._hq_video_writer.write(image)
@@ -146,7 +167,6 @@ class FFMPEGVideoWriter:
 
     
     def _check_terminated(self):
-
         check_log.debug(self._ffmpeg._command)
         check_log.debug(self._count)
 
@@ -161,24 +181,14 @@ class FFMPEGVideoWriter:
         return True
 
     def release(self):
-        code = self._ffmpeg.terminate()
-        logger.info(f"Termination code for {self._ffmpeg._command}: {code}")
-        self._terminate_time = time.time()
-        try:
-            status = self._ffmpeg.wait(self._TIMEOUT)
-        except Exception as error:
-            logger.error(error)
-            logger.error(traceback.print_exc())
-            self._ffmpeg.kill()
-            status = 1
+        self._ffmpeg.terminate()
+        del self._ffmpeg._process
+        del self._ffmpeg
+        self._is_released = True
 
-        check_log.debug(f"STATUS: {status}")        
-        if not self._check_terminated():
-            check_log.debug(f"Killing {self._ffmpeg._command}")
-            self._ffmpeg.kill()
-        
-                
-        return status
+    def is_released(self):
+        return self._is_released
+
 
 
 VideoWriter = FFMPEGVideoWriter
