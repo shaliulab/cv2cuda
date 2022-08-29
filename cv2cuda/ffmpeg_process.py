@@ -14,8 +14,20 @@ terminate_log = logging.getLogger(__name__ + ".terminate")
 
 class FFMPEG:
     
-    def __init__(self, *args, **kwargs):
-        command, registers = self._setup(*args, **kwargs)
+    def __init__(self, width, height, fps, output, device="gpu", codec="h264_nvenc", encode=True):
+        """
+        Manage a subprocess which calls ffmpeg and encodes incoming images
+
+        Arguments:
+            * width, height (int): Width and height of the images
+            * fps (int): Framerate of the output video
+            * output (str): Path to the resulting video
+            * device (str): If gpu, ffmpeg is called with gpu acceleration
+            * codec (str): If device = gpu, this should be h264_nvenc, otherwise,
+            it should be one of the codes available for the cv2.VideoWriter_fourcc call
+            * encode (str): For now it should always be True
+        """
+        command, registers = self._setup(width, height, fps, output, device=device, codec=codec, encode=encode)
         cmd = shlex.split(command)
         self._cmd = cmd
         self._command = command
