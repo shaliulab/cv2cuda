@@ -4,8 +4,8 @@ PACKAGE_NAME = "cv2cuda"
 
 setup(
     name=PACKAGE_NAME,
-    version="1.0.6",
-    install_requires=["opencv-python>=3.4.8.29", "psutil"],
+    version="1.0.7",
+    install_requires=["opencv-python>=3.4.8.29", "psutil", "numpy==1.19.5"],
     packages=find_packages(),
     extras_require={"profile": ["pynvml", "numpy"], "test": ["progressbar"]},
     entry_points={

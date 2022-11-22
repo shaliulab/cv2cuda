@@ -1,19 +1,37 @@
-import time
-import subprocess
-import traceback
 import os.path
 import math
+import time
 import logging
 
 import psutil
 import cv2
+import multiprocessing
+import subprocess
+import signal
+
 from cv2cuda.ffmpeg_process import FFMPEG
 from cv2cuda.decorator import timeit
+
 
 logger = logging.getLogger(__name__)
 check_log = logging.getLogger(__name__ + ".check")
 
+def is_process_running(self, process_name):
+    p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+    out, err = p.communicate()    
 
+    for line in out.splitlines():
+        if bytes(process_name, 'utf-8') in line:
+            pid = line.split()[0]
+            return pid
+    return False
+
+def kill_process(self):
+    logger.info('Stopping FFMPEG')
+    proc = is_process_running('ffmpeg')
+    if proc:
+        os.kill(proc, signal.SIGINT)
+        
 class FFMPEGVideoWriter:
     """
     A cv2.VideoWriter-like interface that supports FFMPEG+CUDA
@@ -21,9 +39,9 @@ class FFMPEGVideoWriter:
     """
 
     _TIMEOUT=3
-    _CODEC_BURNIN_PERIOD=5 # seconds
+    _CODEC_BURNIN_PERIOD=0 # seconds
 
-    def __init__(self, filename, apiPreference, fourcc, fps, frameSize, isColor=False, maxframes=math.inf, yes=True, device="gpu"):
+    def __init__(self, filename, apiPreference, fourcc, fps, frameSize, isColor=False, maxframes=math.inf, min_bitrate=None, max_bitrate=None, yes=True, device="gpu", **kwargs):
 
         self._isColor = isColor # color not supported for now
         self._fourcc = fourcc
@@ -39,6 +57,12 @@ class FFMPEGVideoWriter:
         self._maxframes = maxframes
         self._already_warned = False
         self._is_released = False
+        self._max_bitrate = max_bitrate
+        self._min_bitrate = min_bitrate
+        self.must_terminate = multiprocessing.Event()
+        self._kwargs = kwargs
+        
+        self._old_processes = []
 
         self._check_deps()
 
@@ -88,7 +112,11 @@ class FFMPEGVideoWriter:
                 """
             )
 
-        self._ffmpeg = FFMPEG(width=width, height=height, fps=fps, output=filename, device=device, codec=fourcc, encode=True)
+        self._ffmpeg = FFMPEG(
+            width=width, height=height, fps=fps, output=filename, device=device,
+            min_bitrate=min_bitrate, max_bitrate=max_bitrate, maxframes=self._maxframes,
+            codec=fourcc, encode=True, **self._kwargs
+        )
 
         _filename, extension = os.path.splitext(filename)
         if extension == ".mp4" and fourcc == "h264_nvenc":
@@ -115,6 +143,7 @@ class FFMPEGVideoWriter:
 
     @timeit
     def write(self, image):
+            
         if len(image.shape) == 3:
             if not self._already_warned:
                 logger.warning(
@@ -128,17 +157,26 @@ class FFMPEGVideoWriter:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         image = self.ensure_size(image)
+        # image=cv2.putText(image, str(self._count), (image.shape[0] // 2, image.shape[1] // 2), cv2.FONT_HERSHEY_SIMPLEX, 20, 0, 10)
         self._ffmpeg.write(image)
         if self._hq_video_writer and self._count < (self._CODEC_BURNIN_PERIOD * self._fps):
             self._hq_video_writer.write(image)
         elif self._hq_video_writer_open:
             self._hq_video_writer.release()
             self._hq_video_writer_open = False
+        else:
+            pass
+            # print(f"maxframes {self._maxframes} not reached. current {self._count}")
 
-        self._count += 1
-        if self._count == self._maxframes:
-            self.release()
-
+        # for i in range(len(self._old_processes)):
+        #     ffmpeg, stop_time = self._old_processes[i]
+        #     if ffmpeg is not None:
+        #         if time.time()- stop_time > 5:
+        #             ffmpeg.terminate()
+        #             del ffmpeg._process
+        #             self._old_processes[i] = (None, 0)
+        #             self._is_released = True
+        #             print(f"cv2cuda wrote {self._count} frames")
 
     def _check_cuda(self):
         logger.warning("CUDA checks not implemented yet")
@@ -165,6 +203,7 @@ class FFMPEGVideoWriter:
         # self._check_ffmpeg()
         # self._check_cuda()
 
+
     
     def _check_terminated(self):
         check_log.debug(self._ffmpeg._command)
@@ -180,11 +219,32 @@ class FFMPEGVideoWriter:
         
         return True
 
-    def release(self):
-        self._ffmpeg.terminate()
-        del self._ffmpeg._process
-        del self._ffmpeg
-        self._is_released = True
+    def release(self, force=True):
+        self.must_terminate.set()
+        if force and not self._is_released:
+            print("Executing video writer release()")
+            # self._old_processes.append((self._ffmpeg, time.time()))
+            print(self._ffmpeg._process.communicate())
+            before=time.time()
+            self._ffmpeg._process.wait()
+            after=time.time()
+            print(f"Waited {after-before} seconds")
+            return
+            # while True:
+            #     print(self._ffmpeg._process.communicate())
+            #     # print(dir(self._ffmpeg._process.stdin))
+            #     print(self._ffmpeg._process.stdin)
+            #     print(self._ffmpeg._process.stdout)
+                
+            #     # print(dir(self._ffmpeg._process.stdout))
+            #     time.sleep(1)
+            
+            
+            # self._ffmpeg.terminate()
+            # del self._ffmpeg._process
+            # del self._ffmpeg
+            # self._is_released = True
+            # print(f"cv2cuda wrote {self._count} frames")
 
     def is_released(self):
         return self._is_released
