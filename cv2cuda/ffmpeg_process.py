@@ -14,7 +14,7 @@ terminate_log = logging.getLogger(__name__ + ".terminate")
 
 
 class FFMPEG:
-    
+
     def __init__(self, width, height, fps, output, device="gpu", codec="h264_nvenc", min_bitrate=None, max_bitrate=None, maxframes=math.inf, encode=True, gop_duration=None):
         """
         Manage a subprocess which calls ffmpeg and encodes incoming images
@@ -59,12 +59,12 @@ class FFMPEG:
         # drawtext = r'drawtext="box=1:text=\'%{n}\':x=(w-tw)*0.01: y=(2*lh):fontcolor=black: fontsize=16"'
         # pipeline = f'-vf {drawtext} {output}'
         pipeline = output
-        
-        
-        if gop_duration is None:
-            encoder_flags = ""
-        else:
-            encoder_flags = f"-g {int(fps * gop_duration)}"
+
+        # ffmpeg -hide_banner -h encoder=h264_nvenc | xclip -sel clip
+        encoder_flags = " "#-preset lossless "
+
+        if gop_duration is not None:
+            encoder_flags += f"-g {int(fps * gop_duration)}"
 
         # if "highspeed" in output:
         #     encoder_flags = f"-g {int(fps*60)}"
@@ -79,7 +79,7 @@ class FFMPEG:
         if device == "gpu":
             command = f"/usr/local/ffmpeg4/bin/ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -loglevel warning -r {fps} -f rawvideo -pix_fmt {PIX_FMT}"\
                 " -vsync 0 -extra_hw_frames 2"\
-                f" -s {width}x{height}"       
+                f" -s {width}x{height}"
             if output is None:
                 command += f" -i - -an -c:v {codec} -f null - "
             else:
@@ -92,7 +92,7 @@ class FFMPEG:
                     command += f" -i - -an -vcodec {codec} -f null -"
                 else:
                     command += f" -i - -an -vcodec {codec} {pipeline}"
-        
+
         if encode:
             registers = (subprocess.PIPE, None)
         else:
@@ -106,7 +106,7 @@ class FFMPEG:
 
 
         # pipeline = f'-f lavfi -i color=a0a0a0:s={width}x{height} -f lavfi -i color=black:s={width}x{height} -f lavfi -i color=white:s={width}x{height} -i mask.png  -filter_complex "threshold[segmented],[segmented][4:v] overlay=0:0'
-        
+
         # drawtext = r'drawtext="box=1:text=\'%{n}\':x=(w-tw)*0.01: y=(2*lh):fontcolor=black: fontsize=16"'
         # pipeline = f'-vf {drawtext} {output}'
 
@@ -130,7 +130,7 @@ class FFMPEG:
 
         if not encode:
             raise Exception("Decoder is not yet implemented")
-        
+
         bitrate = ""
 
         # if max_bitrate is None:
@@ -138,14 +138,14 @@ class FFMPEG:
         # else:
         #     bitrate = f" -b:v {max_bitrate/1000}k -minrate {min_bitrate/1000}k -maxrate {max_bitrate/1000}k -bufsize 1G"
         loglevel="warning"
-        
+
         if maxframes is not None and maxframes < math.inf:
-        
+
             position_total_seconds=maxframes / fps
             position_hours = math.floor(position_total_seconds // 3600)
             position_minutes = math.floor(position_total_seconds // 60)
             position_seconds = math.ceil(position_total_seconds % 60)
-            position=f"-to {str(position_hours).zfill(2)}:{str(position_minutes).zfill(2)}:{str(position_seconds).zfill(2)}" 
+            position=f"-to {str(position_hours).zfill(2)}:{str(position_minutes).zfill(2)}:{str(position_seconds).zfill(2)}"
         else:
             position=" "
 
@@ -157,7 +157,7 @@ class FFMPEG:
 
             command = f"ffmpeg -y -loglevel {loglevel} -r {int(fps)} -f rawvideo -pix_fmt {PIX_FMT}"\
                 " -vsync 0 -extra_hw_frames 2" \
-                f" -s {width}x{height}"       
+                f" -s {width}x{height}"
                 # " -thread_queue_size 512"\
             if output is None:
                 command += f" -i - {bitrate} -an -c:v {codec} {encoder_flags} -f null - "
@@ -171,9 +171,9 @@ class FFMPEG:
         #         if output is None:
         #             command += f" -i - {bitrate} -an -vcodec {codec} -f null -"
         #         else:
-                    
+
         #             command += f" -i - {bitrate} -an -vcodec {codec} {pipeline}"
-        
+
         if encode:
             registers = (subprocess.PIPE, None)
         else:
@@ -196,9 +196,9 @@ class FFMPEG:
                         "\nis defunct"
                     )
                     self._terminate_event = 2
-                   
+
                 # poll = self._process.poll()
-                # print(f"Poll {poll}") 
+                # print(f"Poll {poll}")
                 # if poll is not None:
                 #     self.terminate()
 
@@ -219,7 +219,7 @@ class FFMPEG:
     def kill(self):
         self._process.stdin.close()
         return self._process.kill()
-        
+
 
     def poll(self):
         return self._process.poll()
