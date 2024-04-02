@@ -11,6 +11,8 @@ write_log = logging.getLogger(__name__ + ".write")
 terminate_log = logging.getLogger(__name__ + ".terminate")
 # write_log.setLevel(logging.DEBUG)
 # terminate_log.setLevel(logging.DEBUG)
+# FFMPEG_BINARY="/usr/local/ffmpeg4/bin/ffmpeg"
+FFMPEG_BINARY="/usr/local/bin/ffmpeg"
 
 
 class FFMPEG:
@@ -77,7 +79,7 @@ class FFMPEG:
             raise Exception("Decoder is not yet implemented")
 
         if device == "gpu":
-            command = f"/usr/local/ffmpeg4/bin/ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -loglevel warning -r {fps} -f rawvideo -pix_fmt {PIX_FMT}"\
+            command = f"{FFMPEG_BINARY} -y -hwaccel cuda -hwaccel_output_format cuda -loglevel warning -r {fps} -f rawvideo -pix_fmt {PIX_FMT}"\
                 " -vsync 0 -extra_hw_frames 2"\
                 f" -s {width}x{height}"
             if output is None:
