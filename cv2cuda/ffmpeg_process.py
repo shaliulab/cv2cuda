@@ -78,14 +78,25 @@ class FFMPEG:
         if not encode:
             raise Exception("Decoder is not yet implemented")
 
+
         if device == "gpu":
-            command = f"{FFMPEG_BINARY} -y -hwaccel cuda -hwaccel_output_format cuda -loglevel warning -r {fps} -f rawvideo -pix_fmt {PIX_FMT}"\
+            command = f"{FFMPEG_BINARY} -y -hwaccel cuda -hwaccel_output_format nv12 -loglevel warning -r {fps} -f rawvideo -pix_fmt {PIX_FMT}"\
                 " -vsync 0 -extra_hw_frames 2"\
                 f" -s {width}x{height}"
             if output is None:
-                command += f" -i - -an -c:v {codec} -f null - "
+                command += f" -i - -an -c:v {codec} -preset llhp -f null - "
             else:
-                command += f" -i - -an -c:v {codec} {encoder_flags} {pipeline}"
+                command += f" -i - -an -c:v {codec} -preset llhp {encoder_flags} {pipeline}"
+
+            if "FlyHostel1" in command:
+                command=f"taskset -c 0-5 {command}"
+            elif "FlyHostel2" in command:
+                command=f"taskset -c 6-11 {command}"
+            elif "FlyHostel3" in command:
+                command=f"taskset -c 12-17 {command}"
+            elif "FlyHostel4" in command:
+                command=f"taskset -c 18-23 {command}"
+
 
         elif device == "cpu":
                 command = f"ffmpeg -loglevel warning -y  -r {fps} -f rawvideo  -pix_fmt {PIX_FMT}"\
